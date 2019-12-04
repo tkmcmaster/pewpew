@@ -2,27 +2,27 @@
 - refactor stats parser so all console messages are printed from one location
   - need to log errors for try run
   - update results viewer to handle new stats format
+- Directly parse the yaml instead of relying on serde-yaml so we can access line numbers
+- Make config errors more descriptive of where they happened
 - When a test ends early because a provider ended, indicate which provider it was
 - Allow an endpoint's `load_pattern` to not have an `over` field in which case it will last the duration of the test.
 - Add the ability to set the `buffer` for a provider with an auto starting limit. Perhaps something like `a10` or `auto 10`
 - Add expression parsing functions to config_wasm
 - Build UI in the guide to try out expressions with various inputs and view output
+- Bug: load_patterns with `from: 0%` don't work as expected
 - v0.6 - Breaking Change - Make tags a global within a select. Add `tags` to the list of reserved keywords
+- v0.6 - Breaking Change - Make the stats file not be an array of jsons but just a log file of appended jsons (so the file doesn't need to be rewritten in whole with each bucket). Will also need to update the results viewer
 - v0.6 - Breaking Change - Change the repeat option on file and range providers default to true
 - v0.6 - ensure templates for file paths only reference static providers and vars
 - v0.6 - Remove stats-file-format cli flag
 - v0.6 - Integrate provider stats in with regular stats so they're in the stats file and deprecate the `log_provider_stats` general config option.
 - add more tests - unit and integration - get code coverage -- add in negative tests
-  - split config parser into sub-crate and add in unit tests
-  - add in integration test which drops connections before the body is fully sent
+- fix test server and add in ability to close connections
 - HARD - Allow declare expressions to reference other declare variables as long as there's no recursive references
-- Allow tag's expressions to reference providers and be dynamic. This should also agregate endpoints with different tags separately
 - Create a try run viewer. Version > 0.5.
 - Have a `stats` sub-command to read, merge, and print aggregate stats summaries. Also the ability to convert a json to html. Version > 0.5.
 - Have ability to include providers and endpoints (and any provider dependencies) from another config file. Version > 0.5.
-- Adjust expression parsing errors to have line numbers which match with the yaml file
 - Have a way to set an SLA for an endpoint and visualize that in the results. Also have a stats.SLA property that could be used to key logging off of.
-- Log when a request is waiting for a provider (use tokio trace)
 - Add metrics for bytes sent/received per endpoint (total per bucket?)
 - Have the Dockerfile and sh script cross compile for windows as well (see https://stackoverflow.com/a/39184296, https://github.com/est31/msvc-wine-rust)
 - Create server mode:
@@ -31,7 +31,6 @@
   - No access to environment variables from configs.
   - Files for file providers will need to be included with the test as the server should not access any files on disk.
   - Loggers cannot write to files or stdout/stderr--everything should be displayed in the test results view.
-  - Need ability to write stats to a log to be ingested by splunk.
   - Have a domain whitelist--only explicitly specified domains can be hit in a test.
   - Storage layer to store server config, tests and results
   - User permissions: roles to run a test, see results, create a test
@@ -39,4 +38,3 @@
 - track system health (sysinfo crate) perhaps event loop latency and determine if system is overloaded
 - Add `with` support so we can have nested selects. `with` should be key value pairs where the value is an object with `with`*, `select`, `for_each`* and `where`* pieces
 - Create a Visual Studio Code language extension for the loadtest file schema. Perhaps we only need a json schema (https://code.visualstudio.com/docs/languages/json#_json-schemas-settings)
-- Tokio: v0.2 - use tokio-signal instead of ctrl c crate. Previous issues (https://github.com/tokio-rs/tokio/issues/1000) have been resolved
