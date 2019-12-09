@@ -1,0 +1,28 @@
+{
+  "test": "localhost.loadtest.yaml",
+  "bin": "v0.5.4",
+  "bucketSize": 60
+}
+{
+  "tags": {
+    "_id": "0",
+    "method": "POST",
+    "url": "http://localhost:8080"
+  },
+  "index": 0
+}
+{
+  "time": 1573503720,
+  "buckets": {
+    "0": {
+      "endTime": 1573503771,
+      "requestTimeouts": 0, // not present if 0
+      "rttHistogram": "HISTEwAAAAEAAAAAAAAAAwAAAAAAAAABAAAAAAAAAAI/8AAAAAAAAAA", // not present if empty
+      "startTime": 1573503770,
+      "statusCounts": {}, // not present if empty
+      "testErrors": {
+        "connection error: `No connection could be made because the target machine actively refused it. (os error 10061)`": 2
+      } // not present if empty
+    } // whole bucket should not be present if there is no data
+  }
+}

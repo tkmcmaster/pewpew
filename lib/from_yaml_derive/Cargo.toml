@@ -1,0 +1,13 @@
+[package]
+name = "from_yaml_derive"
+version = "0.0.0"
+edition = "2018"
+
+[lib]
+doctest = false
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+syn = { version = "1", features = ["extra-traits"] }
+quote = "1"
