@@ -512,11 +512,7 @@ impl FromYaml for ProviderPreProcessed {
 
 impl ProviderPreProcessed {
     fn is_response_provider(&self) -> bool {
-        if let ProviderPreProcessed::Response(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, ProviderPreProcessed::Response(_))
     }
 }
 
@@ -1493,11 +1489,7 @@ pub enum EndpointProvidesSendOptions {
 
 impl EndpointProvidesSendOptions {
     pub fn is_block(self) -> bool {
-        if let EndpointProvidesSendOptions::Block = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, EndpointProvidesSendOptions::Block)
     }
 }
 

@@ -77,6 +77,7 @@ members = [
     "lib/hdr-histogram-wasm",
     "lib/for_each_parallel",
     "lib/mod_interval",
+    "lib/scripting_js",
     "lib/select_any",
     "lib/test_common",
     "lib/zip_all",
