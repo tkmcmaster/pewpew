@@ -1,5 +1,8 @@
 import { encodeOutgoingMessage } from "./byteUtils.ts";
 
+type JsonTypeValue<T> = { [key: string]: string | number | null | T };
+export interface JsonType extends JsonTypeValue<JsonType> {};
+
 export interface Header {
   end: boolean;
   id: bigint;
@@ -162,8 +165,7 @@ export class BodyBuffer {
   }
 }
 
-export async function sendOutgoingMessage(...args: Parameters<typeof encodeOutgoingMessage>): Promise<bigint> {
+export async function sendOutgoingMessage(...args: Parameters<typeof encodeOutgoingMessage>): Promise<void> {
   const [bytes, id] = encodeOutgoingMessage(...args);
   await Deno.stdout.write(bytes);
-  return id;
 }

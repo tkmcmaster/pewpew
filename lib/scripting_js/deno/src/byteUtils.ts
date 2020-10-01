@@ -1,5 +1,4 @@
-import { IPCMessage, HeaderBuffer, Header, BodyBuffer } from "./message.ts";
-import { JsonType } from "../pewpew.ts";
+import { IPCMessage, JsonType, HeaderBuffer, Header, BodyBuffer } from "./message.ts";
 
 export function decodeString(bytes: Uint8Array): string {
   return new TextDecoder("utf8").decode(bytes);
@@ -9,7 +8,7 @@ export function encodeString(str: string, into: Uint8Array, position: number = 0
   // if the `into` parameter is big enough, use it instead of allocating another Uint8Array
   if (str.length * 3 <= into.byteLength - position + 1) {
     const { written } = new TextEncoder().encodeInto(str, into.subarray(position - 1));
-    return into.subarray(0, written + position - 1);
+    return into.subarray(0, written! + position - 1);
   } else {
     const bytes = new TextEncoder().encode(str);
     return bytes;
@@ -39,7 +38,7 @@ export function decodeBigUint(bytes: Uint8Array, width: 55): bigint {
     // put them all together
     return (BigInt(first) << 24n) | (BigInt(middle) << 8n) | BigInt(last);
   } else {
-    throw new Error(`decoding bigUint not supported for Uint8Array's not 7 bytes`);
+    throw new Error(`decoding bigUint not supported for Uint8Arrays that are not 7 bytes`);
   }
 }
 
@@ -73,21 +72,20 @@ export class ByteStream extends ReadableStream<Uint8Array> {
 
 export type AddProviderValueOptions = { force?: never, ifNotFull: true } | { force: true, ifNotFull?: never };
 
-type OutgoingMessageArgs = [0, string] // get provider value
-  | [1, string, JsonType, AddProviderValueOptions | undefined] // add provider value
-  | [2, string, JsonType] // log message
-  | [3, bigint] // get response body
+type OutgoingMessageArgs = [0, bigint, string] // get provider value
+  | [1, bigint, string, JsonType, AddProviderValueOptions | undefined] // add provider value
+  | [2, bigint, string, JsonType] // log message
+  | [3, bigint, bigint] // get response body
   | [4, bigint] // create util function result
   | [5, bigint, number | string] // create endpoint pre function result
   | [6, bigint, number | string] // create endpoint post function result
   | [7, bigint, JsonType | string | undefined] // call endpoint pre function result
   | [8, bigint, string?]; // call endpoint post function result
 
-let requestId = 0n;
-export function encodeOutgoingMessage(opCode: 0, name: string): [Uint8Array, bigint];
-export function encodeOutgoingMessage(opCode: 1, name: string, value: JsonType, options: AddProviderValueOptions | undefined): [Uint8Array, bigint];
-export function encodeOutgoingMessage(opCode: 2, name: string, value: JsonType): [Uint8Array, bigint];
-export function encodeOutgoingMessage(opCode: 3, responseId: bigint): [Uint8Array, bigint];
+export function encodeOutgoingMessage(opCode: 0, requestId: bigint, name: string): [Uint8Array, bigint];
+export function encodeOutgoingMessage(opCode: 1, requestId: bigint, name: string, value: JsonType, options: AddProviderValueOptions | undefined): [Uint8Array, bigint];
+export function encodeOutgoingMessage(opCode: 2, requestId: bigint, name: string, value: JsonType): [Uint8Array, bigint];
+export function encodeOutgoingMessage(opCode: 3, requestId: bigint, responseId: bigint): [Uint8Array, bigint];
 export function encodeOutgoingMessage(opCode: 4, responseId: bigint): [Uint8Array, bigint];
 export function encodeOutgoingMessage(opCode: 5, responseId: bigint, result: number | string): [Uint8Array, bigint];
 export function encodeOutgoingMessage(opCode: 6, responseId: bigint, result: number | string): [Uint8Array, bigint];
@@ -99,20 +97,20 @@ export function encodeOutgoingMessage(...args: OutgoingMessageArgs): [Uint8Array
   let id: bigint;
   const opCode = args[0];
   if (args[0] == 0) {
-    id = requestId++;
-    bytes = new Uint8Array(args[1].length * 3 + HeaderBuffer.HEADER_SIZE);
-    bytes = encodeString(args[1], bytes, HeaderBuffer.HEADER_SIZE + 1);
+    id = args[1];
+    bytes = new Uint8Array(args[2].length * 3 + HeaderBuffer.HEADER_SIZE);
+    bytes = encodeString(args[2], bytes, HeaderBuffer.HEADER_SIZE + 1);
   } else if (args[0] == 1 || args[0] == 2) {
-    id = requestId++;
-    const json = args[3]
-      ? JSON.stringify([args[1], args[2], args[3]])
-      : JSON.stringify([args[1], args[2]]);
+    id = args[1];
+    const json = args[4]
+      ? JSON.stringify([args[2], args[3], args[4]])
+      : JSON.stringify([args[2], args[3]]);
     bytes = new Uint8Array(json.length * 3 + HeaderBuffer.HEADER_SIZE);
     bytes = encodeString(json, bytes, HeaderBuffer.HEADER_SIZE + 1);
   } else if (args[0] == 3) {
-    id = requestId++;
+    id = args[1];
     bytes = new Uint8Array(8 + HeaderBuffer.HEADER_SIZE);
-    new DataView(bytes.buffer).setBigUint64(HeaderBuffer.HEADER_SIZE, args[1] << 8n);
+    new DataView(bytes.buffer).setBigUint64(HeaderBuffer.HEADER_SIZE, args[2] << 8n);
     bytes = bytes.subarray(0, HeaderBuffer.HEADER_SIZE + 7);
   } else if (args[0] == 4) {
     id = args[1];

@@ -59,10 +59,10 @@ class ClosableBuffer extends Deno.Buffer implements Deno.Closer {
 
 Deno.test("Outgoing messages should be encoded properly", async () => {
   const args: Parameters<typeof sendOutgoingMessage>[] = [
-    [0, "foo"],
-    [1, "foo", { zed: 123 }],
-    [2, "log", { some: "thing" }],
-    [3, 9152n],
+    [0, 0n, "foo"],
+    [1, 0n, "foo", { zed: 123 }, undefined],
+    [2, 0n, "log", { some: "thing" }],
+    [3, 0n, 9152n],
     [4, 0n],
     [5, BigInt(Number.MAX_SAFE_INTEGER), 27],
     [6, 0n, 17],
@@ -87,19 +87,20 @@ Deno.test("Outgoing messages should be encoded properly", async () => {
     assert(header.end, "header should indicate end of message");
     if (a[0] == 0) {
       const s = decodeString(bodyBytes);
-      assertEquals(s, a[1]);
+      assertEquals(s, a[2]);
     } else if (a[0] == 1 || a[0] == 2) {
       const [name, json] = JSON.parse(decodeString(bodyBytes));
-      assertEquals(name, a[1]);
-      assertEquals(json, a[2]);
+      assertEquals(name, a[2]);
+      assertEquals(json, a[3]);
     } else if (a[0] == 3) {
       const n = decodeBigUint(bodyBytes, 55);
-      assertEquals(n, a[1]);
+      assertEquals(n, a[2]);
     } else if (a[0] == 4) {
       assertEquals(bodyBytes.byteLength, 0);
     } else if (a[0] == 5 || a[0] == 6) {
-      const n = decodeUint(bodyBytes, 16);
-      assertEquals(n, a[2]);
+      const json = decodeString(bodyBytes);
+      const value = JSON.parse(json);
+      assertEquals(value, a[2]);
     } else if (a[0] == 7) {
       if (bodyBytes.byteLength > 0) {
         const json = decodeString(bodyBytes);
@@ -119,81 +120,81 @@ Deno.test("Outgoing messages should be encoded properly", async () => {
   }
 });
 
-Deno.test("test worker import abilities", async () => {
-  // TODO: util, pre and post functions:
-  //    - have a worker run per number of cpu cores
-  //    - have Deno.compile compile all TypeScript functions
-  //    - run JavaScript code through AST to verify each function is a single function
-  //    - have every util, pre and post function eval into every worker. This should be done so
-  //      each pre and post function have the same id across all workers
-  //    - incoming messages to call a pre or post function will be handed off to a worker
-  //    - when a worker needs to get or set a provider or log something the request will be tied
-  //      to the worker so the pre/post function can resume where it left off
-  //    - while a worker is `await`ing for get/set provider or to log something, it can handle
-  //      simultaneous pre/post function calls
-  //    - the main thread will keep track of which worker threads are busy and how many pending
-  //      (`await`ing) tasks there are on each one
-  //    - the main thread will hand off incoming pre and post calls to whichever available worker
-  //      has the fewest number of pending tasks
+// Deno.test("test worker import abilities", async () => {
+//   // TODO: util, pre and post functions:
+//   //    - have a worker run per number of cpu cores
+//   //    - have Deno.compile compile all TypeScript functions
+//   //    - run JavaScript code through AST to verify each function is a single function
+//   //    - have every util, pre and post function eval into every worker. This should be done so
+//   //      each pre and post function have the same id across all workers
+//   //    - incoming messages to call a pre or post function will be handed off to a worker
+//   //    - when a worker needs to get or set a provider or log something the request will be tied
+//   //      to the worker so the pre/post function can resume where it left off
+//   //    - while a worker is `await`ing for get/set provider or to log something, it can handle
+//   //      simultaneous pre/post function calls
+//   //    - the main thread will keep track of which worker threads are busy and how many pending
+//   //      (`await`ing) tasks there are on each one
+//   //    - the main thread will hand off incoming pre and post calls to whichever available worker
+//   //      has the fewest number of pending tasks
 
-  const [diagnostics, emitMap] = await Deno.compile("/0.ts", {
-    "/0.ts": `
-    /// <reference no-default-lib="true"/>
-    /// <reference lib="es2020"/>
-    import type { Providers } from "/bar.ts";
+//   const [diagnostics, emitMap] = await Deno.compile("/0.ts", {
+//     "/0.ts": `
+//     /// <reference no-default-lib="true"/>
+//     /// <reference lib="es2020"/>
+//     import type { Providers } from "/bar.ts";
 
-    function foo(a: number) {
-      a.push(1.2);
-      return "hi";
-    }
+//     function foo(a: number) {
+//       a.push(1.2);
+//       return "hi";
+//     }
 
-    (async function(providers: Providers) {
-      let f = providers.set("foo", {});
+//     (async function(providers: Providers) {
+//       let f = providers.set("foo", {});
 
-    })`,
-    "/bar.ts": `
-      export interface Providers {
-        get(s: string): Promise<void>;
-      }
-    `
-  },
-  {
-    lib: ["dom", "es2020"],
-    sourceMap: false,
-  });
+//     })`,
+//     "/bar.ts": `
+//       export interface Providers {
+//         get(s: string): Promise<void>;
+//       }
+//     `
+//   },
+//   {
+//     lib: ["dom", "es2020"],
+//     sourceMap: false,
+//   });
 
-  console.log(diagnostics, emitMap);
+//   console.log(diagnostics, emitMap);
 
-  // const [diagnostics, emitMap] = await Deno.compile("/foo.ts", {
-  //   "/foo.ts": `
-  //   /// <reference no-default-lib="true"/>
-  //   /// <reference lib="es2020"/>
+//   // const [diagnostics, emitMap] = await Deno.compile("/foo.ts", {
+//   //   "/foo.ts": `
+//   //   /// <reference no-default-lib="true"/>
+//   //   /// <reference lib="es2020"/>
 
-  //   import {bar, Providers} from "./bar.ts";
-  //   console.log(bar);
+//   //   import {bar, Providers} from "./bar.ts";
+//   //   console.log(bar);
 
-  //   declare const providers: Providers;
+//   //   declare const providers: Providers;
     
-  //   (async function() {
-  //     let f = providers.set("foo", {});
-  //   })
+//   //   (async function() {
+//   //     let f = providers.set("foo", {});
+//   //   })
 
-  //   `,
-  //   "/bar.ts": `
-  //   export const bar = "bar";
-  //   export interface Providers {
-  //     get(s: string): Promise<void>;
-  //   }
-  //   `,
-  // });
+//   //   `,
+//   //   "/bar.ts": `
+//   //   export const bar = "bar";
+//   //   export interface Providers {
+//   //     get(s: string): Promise<void>;
+//   //   }
+//   //   `,
+//   // });
   
-  // console.log(diagnostics, emitMap);
+//   // console.log(diagnostics, emitMap);
 
 
-  const worker = new Worker(new URL("./worker.js", import.meta.url).href, {type: "module"});
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  worker.terminate();
-});
+//   const worker = new Worker(new URL("./worker.js", import.meta.url).href, {type: "module"});
+//   await new Promise((resolve) => setTimeout(resolve, 1000));
+//   worker.terminate();
+// });
 
 // Deno.test("test parsing typescript", () => {
 //   const fn = `
